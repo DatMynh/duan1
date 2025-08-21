@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShopAcc - Cửa hàng bán tài khoản game</title>
+  <meta name="description" content="ShopAcc - Mua bán tài khoản game Liên Quân, Free Fire, LOL... Thanh toán giả lập, giỏ hàng, lịch sử đơn hàng (localStorage)." />
+  <style>
+    :root{
+      --bg:#0f1220; --card:#161a2e; --muted:#8a90b2; --text:#e9ecff; --brand:#6c7cff; --brand-2:#3dd2cc; --danger:#ff5d5d; --ok:#2dcc70; --border:#232745;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(1200px 600px at 20% -10%, #1d2140 0%, #0f1220 50%, #0f1220 100%);color:var(--text)}
+    a{color:inherit}
+    .container{max-width:1200px;margin:0 auto;padding:16px}
+    header{position:sticky;top:0;z-index:50;background:rgba(15,18,32,.7);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+    .nav{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:12px 0}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.5px}
+    .logo .badge{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--brand),#9aa3ff)}
+    .logo span{font-size:20px}
+    .searchbar{display:grid;grid-template-columns:1fr 160px 140px 42px;gap:10px;width:min(100%,760px)}
+    .input,.select,.btn{height:42px;border:1px solid var(--border);background:#111426;color:var(--text);border-radius:12px;padding:0 12px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,var(--brand),#8b95ff);border:none;font-weight:700;cursor:pointer}
+    .btn.secondary{background:#151935}
+    .btn.ghost{background:transparent;border:1px dashed var(--border)}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+    .card{grid-column:span 3;background:linear-gradient(180deg,#171b32,#13162a);border:1px solid var(--border);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+    .card img{width:100%;height:160px;object-fit:cover}
+    .card .body{padding:12px 12px 14px;display:flex;flex-direction:column;gap:8px}
+    .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:999px;font-size:12px}
+    .price{font-size:18px;font-weight:800}
+    .muted{color:var(--muted)}
+    .row{display:flex;align-items:center;gap:10px}
+    .space{flex:1}
+    .wrap{flex-wrap:wrap}
+
+    .toolbar{display:flex;align-items:center;gap:10px}
+    .toolbar .btn{height:38px;border-radius:10px}
+
+    .section-title{display:flex;align-items:center;gap:10px;margin:18px 0}
+    .section-title h2{margin:0;font-size:20px}
+
+    /* Cart drawer */
+    .drawer{position:fixed;right:-420px;top:0;bottom:0;width:420px;background:#0d1020;border-left:1px solid var(--border);transition:right .25s ease;z-index:60;display:flex;flex-direction:column}
+    .drawer.open{right:0}
+    .drawer header{position:sticky;top:0;background:#0d1020;border-bottom:1px solid var(--border)}
+    .drawer footer{position:sticky;bottom:0;background:#0d1020;border-top:1px solid var(--border);padding:12px}
+    .cart-item{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;padding:10px;border-bottom:1px dashed var(--border)}
+    .cart-item img{width:64px;height:64px;object-fit:cover;border-radius:10px}
+
+    /* Modal */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:70;padding:16px}
+    .modal.open{display:flex}
+    .modal .panel{width:min(820px,100%);background:#0f1328;border:1px solid var(--border);border-radius:18px;overflow:hidden}
+    .panel header, .panel footer{padding:12px 16px;border-bottom:1px solid var(--border)}
+    .panel footer{border-top:1px solid var(--border);border-bottom:none}
+    .panel .content{padding:16px}
+
+    .gallery{display:grid;grid-template-columns:1fr 120px;gap:12px}
+    .gallery .main{height:300px;border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+    .gallery .main img{width:100%;height:100%;object-fit:cover}
+    .thumbs{display:grid;gap:8px;grid-auto-rows:70px}
+    .thumbs img{width:100%;height:70px;object-fit:cover;border-radius:10px;border:2px solid transparent;cursor:pointer}
+    .thumbs img.active{border-color:var(--brand)}
+
+    /* Forms */
+    form .field{display:grid;gap:6px;margin-bottom:12px}
+    label{font-size:13px;color:var(--muted)}
+    input,select,textarea{background:#0b0e1c;border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px}
+
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#0d1225;font-size:12px}
+    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;border:1px solid var(--border);padding:2px 6px;border-radius:6px;background:#0b0e1c;color:var(--muted)}
+
+    /* Responsive */
+    @media (max-width: 1024px){
+      .card{grid-column:span 4}
+      .searchbar{grid-template-columns:1fr 140px 120px 42px}
+      .drawer{width:100%}
+    }
+    @media (max-width: 640px){
+      .card{grid-column:span 12}
+      .searchbar{grid-template-columns:1fr 100px 100px 42px}
+      .gallery{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container nav">
+      <div class="logo">
+        <div class="badge">🎮</div>
+        <span>Shop<span style="color:var(--brand-2)">Acc</span></span>
+      </div>
+      <div class="searchbar">
+        <input id="q" class="input" placeholder="Tìm: Liên Quân, Free Fire, LOL… (gõ / để focus)" />
+        <select id="gameFilter" class="select">
+          <option value="">Tất cả game</option>
+          <option>Liên Quân</option>
+          <option>Free Fire</option>
+          <option>Liên Minh</option>
+          <option>Genshin</option>
+        </select>
+        <select id="sort" class="select">
+          <option value="popular">Phổ biến</option>
+          <option value="price-asc">Giá tăng dần</option>
+          <option value="price-desc">Giá giảm dần</option>
+          <option value="rating">Đánh giá cao</option>
+        </select>
+        <button id="openCart" class="btn" title="Giỏ hàng"><span>🛒</span></button>
+      </div>
+      <div class="toolbar">
+        <button id="btnOrders" class="btn secondary">Lịch sử đơn</button>
+        <button id="btnLogin" class="btn">Đăng nhập</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="section-title">
+      <h2>Sản phẩm nổi bật</h2>
+      <span class="pill">Bảo hành 7 ngày</span>
+      <span class="pill">Hỗ trợ 24/7</span>
+      <span class="pill">Giao ngay sau thanh toán</span>
+      <span class="space"></span>
+      <span class="kbd">/</span>
+    </div>
+
+    <div id="productGrid" class="grid"></div>
+  </main>
+
+  <!-- Cart Drawer -->
+  <aside id="drawer" class="drawer" aria-hidden="true">
+    <header class="container nav">
+      <strong>Giỏ hàng</strong>
+      <div class="space"></div>
+      <button id="closeCart" class="btn ghost">Đóng</button>
+    </header>
+    <div id="cartList" style="padding:0 10px;overflow:auto;flex:1"></div>
+    <footer>
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <span class="muted">Tổng</span>
+        <strong id="cartTotal" class="price">0₫</strong>
+      </div>
+      <div class="row" style="gap:8px">
+        <button id="btnClearCart" class="btn secondary" style="flex:1">Xoá giỏ</button>
+        <button id="btnCheckout" class="btn" style="flex:2">Thanh toán</button>
+      </div>
+    </footer>
+  </aside>
+
+  <!-- Product Modal -->
+  <div id="productModal" class="modal" role="dialog" aria-modal="true">
+    <div class="panel">
+      <header class="row">
+        <strong id="pmTitle">Chi tiết sản phẩm</strong>
+        <div class="space"></div>
+        <button class="btn ghost" onclick="closeProductModal()">Đóng</button>
+      </header>
+      <div class="content">
+        <div class="gallery">
+          <div class="main"><img id="pmImg" src="" alt="Ảnh sản phẩm" /></div>
+          <div id="pmThumbs" class="thumbs"></div>
+        </div>
+        <div style="height:12px"></div>
+        <div class="row wrap">
+          <span id="pmGame" class="chip"></span>
+          <span id="pmRating" class="chip">⭐ 5.0</span>
+          <span id="pmStock" class="chip">Kho: --</span>
+        </div>
+        <p id="pmDesc" class="muted"></p>
+        <div class="row">
+          <div class="price" id="pmPrice"></div>
+          <div class="space"></div>
+          <button id="pmAdd" class="btn">Thêm vào giỏ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkout Modal -->
+  <div id="checkoutModal" class="modal">
+    <div class="panel">
+      <header class="row">
+        <strong>Thanh toán</strong>
+        <div class="space"></div>
+        <button class="btn ghost" onclick="toggleCheckout(false)">Đóng</button>
+      </header>
+      <div class="content">
+        <form id="checkoutForm">
+          <div class="field">
+            <label>Email nhận tài khoản</label>
+            <input required type="email" id="coEmail" placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label>SĐT (Zalo/CSKH)</label>
+            <input required type="tel" id="coPhone" placeholder="0xxxxxxx" />
+          </div>
+          <div class="field">
+            <label>Phương thức thanh toán</label>
+            <select id="coMethod" required>
+              <option value="MOMO">MOMO</option>
+              <option value="BANK">Chuyển khoản</option>
+              <option value="COD">Ví demo</option>
+            </select>
+          </div>
+          <div class="row">
+            <label style="display:flex;align-items:center;gap:8px"><input id="coAgree" type="checkbox" required /> Tôi đồng ý với điều khoản mua bán (demo)</label>
+            <div class="space"></div>
+            <strong class="price" id="coTotal">0₫</strong>
+          </div>
+          <button class="btn" style="margin-top:10px">Đặt hàng</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Orders Modal -->
+  <div id="ordersModal" class="modal">
+    <div class="panel">
+      <header class="row">
+        <strong>Lịch sử đơn hàng</strong>
+        <div class="space"></div>
+        <button class="btn ghost" onclick="toggleOrders(false)">Đóng</button>
+      </header>
+      <div class="content" id="ordersContent">
+        <p class="muted">Chưa có đơn hàng.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth Modal -->
+  <div id="authModal" class="modal">
+    <div class="panel">
+      <header class="row">
+        <strong id="authTitle">Đăng nhập</strong>
+        <div class="space"></div>
+        <button class="btn ghost" onclick="toggleAuth(false)">Đóng</button>
+      </header>
+      <div class="content">
+        <form id="authForm">
+          <div class="field">
+            <label>Tên hiển thị</label>
+            <input id="authName" required placeholder="VD: Minh Đạt" />
+          </div>
+          <div class="field">
+            <label>Mật khẩu (demo)</label>
+            <input id="authPass" type="password" required placeholder="******" />
+          </div>
+          <button class="btn" style="width:100%">Vào cửa hàng</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---------- Data ----------
+    const PRODUCTS = [
+      {
+        id: "acc-001",
+        title: "Liên Quân – Rank Cao Thủ",
+        game: "Liên Quân",
+        price: 129000,
+        rating: 4.8,
+        stock: 7,
+        tags: ["skin hiếm", "full tướng"],
+        images: [
+          "https://images.unsplash.com/photo-1606112219348-204d7d8b94ee?q=80&w=1600&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1600&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1600&auto=format&fit=crop",
+        ],
+        desc: "Tài khoản Liên Quân rank Cao Thủ, nhiều skin hiếm. Bảo hành 7 ngày, hỗ trợ 24/7.",
+      },
+      {
+        id: "acc-002",
+        title: "Free Fire – Level 70 + Kim Cương",
+        game: "Free Fire",
+        price: 99000,
+        rating: 4.5,
+        stock: 15,
+        tags: ["nhiều súng", "đổi tên"],
+        images: [
+          "https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1600&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1600&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1515165562835-c3b8c2e35978?q=80&w=1600&auto=format&fit=crop",
+        ],
+        desc: "Free Fire level 70, nhiều kim cương và vật phẩm nâng cấp. Đăng nhập Facebook/Google.",
+      },
+      {
+        id: "acc-003",
+        title: "Liên Minh – Vàng III + 80 Skin",
+        game: "Liên Minh",
+        price: 159000,
+        rating: 4.7,
+        stock: 9,
+        tags: ["nhiều tướng", "rank vàng"],
+        images: [
+          "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1600&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1611262588024-d12430b98920?q=80&w=1600&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1600&auto=format&fit=crop",
+        ],
+        desc: "Tài khoản LOL Vàng III, 80 skin, đổi tên miễn phí 1 lần.",
+      },
+      {
+        id: "acc-004",
+        title: "Genshin – AR 55 + 5 Nhân Vật 5★",
+        game: "Genshin",
+        price: 279000,
+        rating: 4.9,
+        stock: 4,
+        tags: ["nhiều nguyên thạch", "vũ khí 5★"],
+        images: [
+          "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1600&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1600&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1515165562835-c3b8c2e35978?q=80&w=1600&auto=format&fit=crop",
+        ],
+        desc: "Genshin AR55, nhiều nhân vật 5★, đủ nguyên liệu farm. Máy chủ Asia.",
+      },
+      {
+        id: "acc-005",
+        title: "Liên Quân – Rank Tinh Anh",
+        game: "Liên Quân",
+        price: 89000,
+        rating: 4.3,
+        stock: 20,
+        tags: ["nhiều skin"],
+        images: [
+          "https://images.unsplash.com/photo-1515165562835-c3b8c2e35978?q=80&w=1600&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1600&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1611262588024-d12430b98920?q=80&w=1600&auto=format&fit=crop",
+        ],
+        desc: "Liên Quân rank Tinh Anh, trang phục đa dạng, đăng nhập VK/Apple.",
+      },
+      {
+        id: "acc-006",
+        title: "Free Fire – Sưu Tập Hiếm (Thần Thoại)",
+        game: "Free Fire",
+        price: 199000,
+        rating: 4.6,
+        stock: 6,
+        tags: ["skin thần thoại", "pet mạnh"],
+        images: [
+          "https://images.unsplash.com/photo-1611262588024-d12430b98920?q=80&w=1600&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1600&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1600&auto=format&fit=crop",
+        ],
+        desc: "Acc Free Fire sưu tập hiếm, nhiều skin sự kiện, liên kết an toàn.",
+      },
+    ];
+
+    // ---------- Helpers ----------
+    const VND = n => new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(n);
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+    const uid = () => Math.random().toString(36).slice(2,8).toUpperCase();
+
+    const LS = {
+      get(k, d){try{return JSON.parse(localStorage.getItem(k)) ?? d}catch(e){return d}},
+      set(k, v){localStorage.setItem(k, JSON.stringify(v))}
+    };
+
+    // ---------- State ----------
+    let state = {
+      products: PRODUCTS,
+      cart: LS.get('cart', []),
+      user: LS.get('user', null),
+      orders: LS.get('orders', []),
+      filter: { q: '', game: '', sort: 'popular' }
+    };
+
+    // ---------- Rendering ----------
+    function renderProducts(){
+      const grid = $('#productGrid');
+      const { q, game, sort } = state.filter;
+      let items = [...state.products].filter(p => (
+        (!q || (p.title+" "+p.game+" "+p.tags.join(' ')).toLowerCase().includes(q.toLowerCase())) &&
+        (!game || p.game === game)
+      ));
+      if (sort === 'price-asc') items.sort((a,b)=>a.price-b.price);
+      if (sort === 'price-desc') items.sort((a,b)=>b.price-a.price);
+      if (sort === 'rating') items.sort((a,b)=>b.rating-a.rating);
+
+      grid.innerHTML = items.map(p => `
+        <div class="card">
+          <img src="${p.images[0]}" alt="${p.title}" loading="lazy"/>
+          <div class="body">
+            <div class="row wrap">
+              <span class="chip">🎮 ${p.game}</span>
+              <span class="chip">⭐ ${p.rating}</span>
+              <span class="chip">Kho: ${p.stock}</span>
+            </div>
+            <div style="font-weight:700">${p.title}</div>
+            <div class="row">
+              <div class="price">${VND(p.price)}</div>
+              <div class="space"></div>
+              <button class="btn secondary" onclick="openProduct('${p.id}')">Xem</button>
+              <button class="btn" onclick="addToCart('${p.id}')">Thêm</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderCart(){
+      const list = $('#cartList');
+      if (!state.cart.length){
+        list.innerHTML = `<div style="padding:16px" class="muted">Giỏ hàng trống.</div>`;
+      } else {
+        list.innerHTML = state.cart.map(item=>{
+          const p = state.products.find(x=>x.id===item.id);
+          return `
+            <div class="cart-item">
+              <img src="${p.images[0]}" alt="${p.title}"/>
+              <div>
+                <div style="font-weight:700">${p.title}</div>
+                <div class="muted">${VND(p.price)} × 
+                  <button class="btn ghost" style="height:28px;padding:0 8px" onclick="decQty('${item.id}')">−</button>
+                  <span class="kbd">${item.qty}</span>
+                  <button class="btn ghost" style="height:28px;padding:0 8px" onclick="incQty('${item.id}')">＋</button>
+                </div>
+              </div>
+              <div style="text-align:right">
+                <div>${VND(p.price*item.qty)}</div>
+                <button class="btn ghost" style="margin-top:6px" onclick="removeFromCart('${item.id}')">Xoá</button>
+              </div>
+            </div>`
+        }).join('');
+      }
+      $('#cartTotal').textContent = VND(totalCart());
+      $('#coTotal').textContent = VND(totalCart());
+    }
+
+    function renderOrders(){
+      const box = $('#ordersContent');
+      if (!state.orders.length){ box.innerHTML = '<p class="muted">Chưa có đơn hàng.</p>'; return; }
+      box.innerHTML = state.orders.map(o=>`
+        <div style="border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
+          <div class="row"><strong>Đơn #${o.id}</strong><div class="space"></div><span class="chip">${new Date(o.created).toLocaleString('vi-VN')}</span></div>
+          <div class="muted">Email: ${o.email} · PT: ${o.method}</div>
+          <div style="height:8px"></div>
+          ${o.items.map(it=>{
+            const p = state.products.find(x=>x.id===it.id);
+            return `<div class="row" style="gap:8px">
+              <span class="kbd">${it.qty}×</span><span>${p.title}</span><div class="space"></div><span>${VND(p.price*it.qty)}</span>
+            </div>`
+          }).join('')}
+          <div class="row" style="border-top:1px dashed var(--border);margin-top:8px;padding-top:8px"><div class="space"></div><strong>Tổng: ${VND(o.total)}</strong></div>
+          <div class="row muted" style="margin-top:6px">Trạng thái: ĐÃ THANH TOÁN (demo) · Tài khoản sẽ được gửi qua email.</div>
+        </div>
+      `).join('');
+    }
+
+    // ---------- Cart ops ----------
+    function addToCart(id){
+      const p = state.products.find(x=>x.id===id);
+      if(!p || p.stock<=0){alert('Sản phẩm hết hàng');return}
+      const exist = state.cart.find(x=>x.id===id);
+      if(exist){ exist.qty = Math.min(exist.qty+1, p.stock); }
+      else { state.cart.push({id, qty:1}); }
+      LS.set('cart', state.cart);
+      renderCart();
+      toggleDrawer(true);
+    }
+    function removeFromCart(id){ state.cart = state.cart.filter(x=>x.id!==id); LS.set('cart', state.cart); renderCart(); }
+    function incQty(id){ const it = state.cart.find(x=>x.id===id); const p=state.products.find(x=>x.id===id); if(it&&p) it.qty=Math.min(it.qty+1,p.stock); LS.set('cart', state.cart); renderCart(); }
+    function decQty(id){ const it = state.cart.find(x=>x.id===id); if(it){ it.qty=Math.max(1,it.qty-1); LS.set('cart', state.cart); renderCart(); }}
+    function totalCart(){ return state.cart.reduce((s,it)=>{ const p=state.products.find(x=>x.id===it.id); return s + (p?p.price*it.qty:0); },0); }
+    function clearCart(){ state.cart=[]; LS.set('cart', state.cart); renderCart(); }
+
+    // ---------- Product modal ----------
+    let currentProduct = null, currentImageIdx = 0;
+    function openProduct(id){
+      const p = state.products.find(x=>x.id===id); if(!p) return;
+      currentProduct = p; currentImageIdx = 0;
+      $('#pmTitle').textContent = p.title;
+      $('#pmImg').src = p.images[0];
+      $('#pmGame').textContent = '🎮 ' + p.game;
+      $('#pmRating').textContent = '⭐ ' + p.rating;
+      $('#pmStock').textContent = 'Kho: ' + p.stock;
+      $('#pmDesc').textContent = p.desc;
+      $('#pmPrice').textContent = VND(p.price);
+      const thumbs = p.images.map((src,idx)=>`<img src="${src}" class="${idx===0?'active':''}" onclick="setMainImg(${idx})"/>`).join('');
+      $('#pmThumbs').innerHTML = thumbs;
+      $('#pmAdd').onclick = () => addToCart(p.id);
+      toggleModal('#productModal', true);
+    }
+    function setMainImg(i){ currentImageIdx = i; $('#pmImg').src = currentProduct.images[i]; $$('#pmThumbs img').forEach((im,idx)=>im.classList.toggle('active', idx===i)); }
+    function closeProductModal(){ toggleModal('#productModal', false); }
+
+    // ---------- Checkout ----------
+    function toggleCheckout(v){ toggleModal('#checkoutModal', v); }
+    function toggleOrders(v){ if(v){ renderOrders(); } toggleModal('#ordersModal', v); }
+    function toggleAuth(v){ toggleModal('#authModal', v); }
+
+    $('#checkoutForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      if(!state.cart.length){ alert('Giỏ hàng trống'); return; }
+      const email = $('#coEmail').value.trim();
+      const phone = $('#coPhone').value.trim();
+      const method = $('#coMethod').value;
+      const total = totalCart();
+      const order = { id: uid(), items: JSON.parse(JSON.stringify(state.cart)), email, phone, method, total, created: Date.now() };
+      state.orders.unshift(order);
+      LS.set('orders', state.orders);
+      clearCart();
+      toggleCheckout(false);
+      toggleDrawer(false);
+      alert(`Đặt hàng thành công! Mã đơn #${order.id}. Kiểm tra lịch sử đơn để xem chi tiết.`);
+    });
+
+    // ---------- Drawer & Modal ----------
+    function toggleDrawer(v){ const d=$('#drawer'); d.classList.toggle('open', v); d.setAttribute('aria-hidden', !v); if(v) renderCart(); }
+    function toggleModal(sel, v){ const m=$(sel); m.classList.toggle('open', v); }
+
+    // ---------- Auth (demo) ----------
+    $('#authForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const name = $('#authName').value.trim();
+      const pass = $('#authPass').value.trim();
+      if(name.length<2 || pass.length<4){ alert('Vui lòng nhập hợp lệ.'); return; }
+      state.user = { name };
+      LS.set('user', state.user);
+      toggleAuth(false);
+      renderUser();
+      alert(`Xin chào ${name}!`);
+    });
+
+    function renderUser(){
+      const btn = $('#btnLogin');
+      if(state.user){ btn.textContent = '👤 '+state.user.name; btn.onclick = ()=>{ if(confirm('Đăng xuất?')){ state.user=null; LS.set('user', null); renderUser(); }} }
+      else { btn.textContent = 'Đăng nhập'; btn.onclick = ()=>toggleAuth(true); }
+    }
+
+    // ---------- Events ----------
+    $('#openCart').onclick = ()=>toggleDrawer(true);
+    $('#closeCart').onclick = ()=>toggleDrawer(false);
+    $('#btnCheckout').onclick = ()=> toggleCheckout(true);
+    $('#btnClearCart').onclick = ()=>{ if(confirm('Xoá toàn bộ giỏ?')) clearCart(); };
+    $('#btnOrders').onclick = ()=> toggleOrders(true);
+
+    $('#q').addEventListener('input', e=>{ state.filter.q = e.target.value; renderProducts(); });
+    $('#gameFilter').addEventListener('change', e=>{ state.filter.game = e.target.value; renderProducts(); });
+    $('#sort').addEventListener('change', e=>{ state.filter.sort = e.target.value; renderProducts(); });
+
+    window.addEventListener('keydown', (e)=>{ if(e.key==='/' && document.activeElement.tagName!=='INPUT'){ e.preventDefault(); $('#q').focus(); } });
+
+    // ---------- Init ----------
+    renderProducts();
+    renderCart();
+    renderUser();
+  </script>
+</body>
+</html>
